@@ -1,0 +1,73 @@
+hashfunction H;	
+const XOR:Function;	
+const PUF:Function;	
+const AND:Function;
+const mask:Function;
+
+macro Y1=AND(F1,R11);
+macro nonce=H(Y1,TS);
+macro H1=H((Y1,C2),TS);
+
+macro R1'=PUF(C1);
+macro Y1'=AND(R1',F1);
+macro H1'=H((Y1',C2),TS);
+macro nonce'=H(Y1',TS);
+macro nonce1=mask(nonce');
+macro Tmask=XOR(Tc,nonce1);
+macro R2=PUF(C2);
+macro R2x=XOR(nonce',R2);
+macro H2=H((R2,Tmask),TS);
+
+macro R2'=XOR(nonce,R2x);
+macro H2'=H(R2',Tmask,TS);
+
+protocol  V-P(V,P) {
+	role V
+	{
+		fresh TS;
+		fresh C1;
+		fresh C2;
+		fresh F1;
+		var Tc;
+		secret R11;
+		/* Sending Msg1 from Verifier to Prover */
+		send_1(V,P,C1,C2,F1,H1,TS);
+		/* Receive Msg2 from Prover */
+		recv_2(P,V,R2x,Tmask,H2);
+		/* Prover Authentication */
+		match(H2,H2');
+		
+		claim(V,Secret,R2');
+		claim(V,Secret,R11);
+		claim(V,Niagree);
+		claim(V,Nisynch);
+		claim(V,Alive);
+		claim(V,Weakagree);
+	}
+	role P
+	{
+		var TS;
+		var C1;
+		var C2;
+		var F1;
+		fresh Tc;
+		secret R11;
+
+		/* Receiving Msg 1 from Verifier */
+		recv_1(V,P,C1,C2,F1,H1,TS);
+		/* Verifier Authentication */
+		match(H1,H1');
+		/* Temparature Sensing and sending Msg2 from Prover to Verifier */
+		send_2(P,V,R2x,Tmask,H2);
+		
+		claim(P,Secret,R1');
+		claim(P,Secret,Tc);
+		claim(P,Secret,R2);
+		claim(P,Niagree);
+		claim(P,Nisynch);
+		claim(P,Alive);
+		claim(P,Weakagree);
+
+	}
+
+}
